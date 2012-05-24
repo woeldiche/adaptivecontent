@@ -1,1 +1,7 @@
 name = Adaptive Content
+description = Load content asynchronously based on dimensions, context or capabilities
+package = Other
+core = 7.x
+php = 5.2
+
+files[] = adaptivecontent.module

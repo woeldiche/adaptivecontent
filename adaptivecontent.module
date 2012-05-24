@@ -1,1 +1,26 @@
 <?php
+
+function adaptivecontent_permission() {
+  return array(
+    'administer adaptivecontent' => array(
+      'title' => t('Administer Adaptive Content'),
+    )
+  );
+}
+
+function adaptivecontent_menu() {
+  $items = array();
+  
+  $items['admin/config/system/adaptivecontent'] = array(
+    'title' => 'Adaptive Content',
+    'description' => t('Adaptive Content settings.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adaptivecontent_admin_form'),
+    'access arguments' => array('administer adaptivecontent'),
+    'file' => 'adaptivecontent.admin.inc',
+    'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
+    'type' => MENU_NORMAL_ITEM,
+  );
+  
+  return $items;
+}
