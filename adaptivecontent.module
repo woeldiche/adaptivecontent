@@ -13,11 +13,11 @@ function adaptivecontent_menu() {
   
   $items['admin/config/content/adaptivecontent'] = array(
     'title' => 'Adaptive Content',
-    'description' => t('Adaptive Content settings.'),
+    'description' => t('Adaptive Content presets.'),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('adaptivecontent_setting_form'),
+    'page arguments' => array('adaptivecontent_preset_form'),
     'access arguments' => array('administer adaptivecontent'),
-    'file' => 'adaptivecontent.setting.inc',
+    'file' => 'adaptivecontent.preset.inc',
     'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
     'type' => MENU_NORMAL_ITEM,
   );
@@ -42,9 +42,8 @@ function adaptivecontent_menu() {
       'type' => MENU_LOCAL_TASK,
       'description' => t('Presets for %theme theme.', array('%theme' => $theme->name)),
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('adaptivecontent_theme_preset_form'),
+      'page arguments' => array('adaptivecontent_theme_preset_form', 5),
       'access arguments' => array('administer adaptivecontent'),
-      'page arguments' => array(5),
       'file' => 'adaptivecontent.preset.inc',
       'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
     );
@@ -53,7 +52,11 @@ function adaptivecontent_menu() {
   $items['admin/config/content/adaptivecontent/settings'] = array(
     'title' => 'Settings',
     'description' => t('Adaptive Content settings.'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adaptivecontent_setting_form'),
     'access arguments' => array('administer adaptivecontent'),
+    'file' => 'adaptivecontent.setting.inc',
+    'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
     'type' => MENU_LOCAL_TASK,
   );
   
