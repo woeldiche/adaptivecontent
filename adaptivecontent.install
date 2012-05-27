@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * @files
+ *  
+ */
+
+function adaptivecontent_install() {
+  adaptivecontent_update_6001();
+}
+
+/**
+ * Set module weight to ensure that the module is called last. 
+ */
+function adaptivecontent_update_6001() {
+  $ret = array();
+  $ret = db_query("UPDATE {system} SET weight = 1001 WHERE name = 'adaptivecontent'");
+  return $ret;
+}
