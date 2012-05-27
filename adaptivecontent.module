@@ -10,7 +10,7 @@ function adaptivecontent_permission() {
 
 function adaptivecontent_menu() {
   $items = array();
-  
+
   $items['admin/config/content/adaptivecontent'] = array(
     'title' => 'Adaptive Content',
     'description' => t('Adaptive Content presets.'),
@@ -21,7 +21,7 @@ function adaptivecontent_menu() {
     'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
     'type' => MENU_NORMAL_ITEM,
   );
-  
+
   $items['admin/config/content/adaptivecontent/presets'] = array(
     'title' => 'Presets',
     'description' => t('Presets.'),
@@ -33,22 +33,24 @@ function adaptivecontent_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
-  
+
   $themes_info = list_themes();
   $themes = array();
   foreach ($themes_info as $key => $theme) {
-    $items['admin/config/content/adaptivecontent/presets/' . $key] = array(
-      'title' => $theme->name,
-      'type' => MENU_LOCAL_TASK,
-      'description' => t('Presets for %theme theme.', array('%theme' => $theme->name)),
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('adaptivecontent_theme_preset_form', 5),
-      'access arguments' => array('administer adaptivecontent'),
-      'file' => 'adaptivecontent.preset.inc',
-      'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
-    );
+    if ($theme->status) {
+      $items['admin/config/content/adaptivecontent/presets/' . $key] = array(
+        'title' => $theme->name,
+        'type' => MENU_LOCAL_TASK,
+        'description' => t('Presets for %theme theme.', array('%theme' => $theme->name)),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('adaptivecontent_theme_preset_form', 5),
+        'access arguments' => array('administer adaptivecontent'),
+        'file' => 'adaptivecontent.preset.inc',
+        'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
+      );
+    }
   }
-  
+
   $items['admin/config/content/adaptivecontent/settings'] = array(
     'title' => 'Settings',
     'description' => t('Adaptive Content settings.'),
@@ -59,6 +61,79 @@ function adaptivecontent_menu() {
     'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
     'type' => MENU_LOCAL_TASK,
   );
-  
+
   return $items;
+}
+
+function adaptivecontent_is_ajax($value = NULL) {
+  $ajax = &drupal_static(__FUNCTION__);
+  if (!isset($ajax)) {
+    $ajax = isset($value) ? $value : FALSE;
+  }
+  return $ajax;
+}
+
+function adaptivecontent_load_configuration($theme_key= NULL) {
+  if (!isset($theme_key)) {
+    global $theme_key;
+  }
+  return variable_get('adaptivecontent_theme_' + $theme_key, array());
+}
+
+function adaptivecontent_init() {
+  // @todo: is this an responsive callback ?
+  adaptivecontent_is_ajax(FALSE);
+}
+
+function adaptivecontent_page_alter(&$page) {
+//  if (adaptivecontent_is_ajax()) {
+
+    // @todo: render regions and return theme as json.
+
+    // Run drupal_page_alter on themes, as they will always come last. In the
+    // drupal_alter function, but we need to have all regions avaliable now. So
+    // do the same as drupal_alter does with the themes. An better solution may
+    // exists...
+    adaptivecontent_theme_page_alter('page_alter', $page);
+
+//    drupal_exit();
+//  }
+
+  krumo($page);
+
+  // Only render core regions.
+  $conf = adaptivecontent_load_configuration();
+  foreach ($conf['core']['regions'] as $region => $render) {
+//    $page[$region]['#access'] = $render ? TRUE : FALSE;
+  }
+}
+
+function adaptivecontent_theme_page_alter($hook, &$data) {
+  // Use the advanced drupal_static() pattern, since this is called very often.
+  static $drupal_static_fast;
+  if (!isset($drupal_static_fast)) {
+    $drupal_static_fast['functions'] = &drupal_static('drupal_alter');
+  }
+  $functions = &$drupal_static_fast['functions'];
+
+  global $theme, $base_theme_info;
+  $theme_alters = array();
+  if (isset($theme)) {
+    $theme_keys = array();
+    foreach ($base_theme_info as $base) {
+      $theme_keys[] = $base->name;
+    }
+    $theme_keys[] = $theme;
+    foreach ($theme_keys as $theme_key) {
+      $function = $theme_key . '_' . $hook;
+      if (function_exists($function)) {
+        $theme_alters[] = $function;
+      }
+    }
+  }
+
+  foreach ($theme_alters as $function) {
+    $function($data);
+    $functions[$hook][] = $function;
+  }
 }
