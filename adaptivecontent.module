@@ -94,6 +94,9 @@ function adaptivecontent_page_alter(&$page) {
     // exists..
     adaptivecontent_theme_page_alter('page_alter', $page);
 
+    // Render regions and return them.
+    
+    
     drupal_exit();
   }
 
