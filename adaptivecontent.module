@@ -82,7 +82,8 @@ function adaptivecontent_load_configuration($theme_key= NULL) {
 
 function adaptivecontent_init() {
   // @todo: is this an responsive callback ?
-  adaptivecontent_is_ajax(FALSE);
+//  adaptivecontent_is_ajax(FALSE);
+  adaptivecontent_is_ajax(TRUE);  
 }
 
 function adaptivecontent_page_alter(&$page) {
@@ -93,9 +94,18 @@ function adaptivecontent_page_alter(&$page) {
     // do the same as drupal_alter does with the themes. An better solution may
     // exists..
     adaptivecontent_theme_page_alter('page_alter', $page);
-
-    // Render regions and return them.
+    $main_content_display = &drupal_static('system_main_content_added', FALSE);
+    if (!$main_content_display) {
+        $page['content']['system_main'] = drupal_set_page_content();
+    }
     
+    // Render regions and return them as json arrays. @todo: load conf based on 
+    // preset information in ajax callback.
+    $region = adaptivecontent_find_regions($page, array('menu' => 'menu'));
+    drupal_render($page); // Get page processing functions etc running, there 
+                          // must be a better way. For annon user it will hit
+                          // the cache but.... this is a HACK.
+    drupal_json_output(render($page['header']['menu']['menu']));
     
     drupal_exit();
   }
@@ -107,26 +117,49 @@ function adaptivecontent_page_alter(&$page) {
   // copy). This creates some problem with the normal, where the theme have to
   // ensure that it do not call these them self... see patch for alpha.
   adaptivecontent_theme_page_alter('page_alter', $page);
-  adaptivecontent_walk_array($page, $conf['core']['regions'], NULL, TRUE);
-
-  // Place makers in regions to ajax load regions to create place holders and
-  // enble theme.
-  echo '';
+  adaptivecontent_disable_regions($page, $conf['core']['regions']);
 }
 
-function adaptivecontent_walk_array(&$data, $regions, $disable = TRUE) {
+function adaptivecontent_disable_regions(&$data, $regions) {
   // @todo: apply cache to speed up walker based on preset. Make the optional.
   $keys = array_keys($data);
   foreach ($keys as $key) {
     if ((!preg_match('/^#/', $key)) && is_array($data[$key])) {
       if (isset($data[$key]['#region'])) {
         if (isset($regions[$key]) && $regions[$key] == '0') {
-           $data[$key]['#access'] = FALSE;
+          $data[$key]['#access'] = FALSE;
+
+          // Place makers in regions to ajax load regions to create place holders and
+          // enble theme.
         }
       }
-      adaptivecontent_walk_array($data[$key], $regions, $disable);
+      adaptivecontent_disable_regions($data[$key], $regions);
     }
   }
+}
+
+function adaptivecontent_find_regions(&$data, $regions) {
+  // @todo: apply cache to speed up walker based on preset. Make the optional.
+  $array = array();
+  $keys = array_keys($data);
+  foreach ($keys as $key) {
+    if ((!preg_match('/^#/', $key)) && is_array($data[$key])) {
+      if (isset($data[$key]['#region']) && isset($regions[$key])) {
+        $array[$key] = $data[$key];
+        // $array[] = render array for region.
+        
+        // pop $regions
+        unset($regions[$key]);
+        
+        // If $regions empty break loop, no more finding need.
+        if (empty($regions)) {
+          break;
+        }
+      }
+      $array[] = adaptivecontent_find_regions($data[$key], $regions);
+    }
+  }
+  return $array;
 }
 
 function adaptivecontent_theme_page_alter($hook, &$data) {
@@ -159,12 +192,3 @@ function adaptivecontent_theme_page_alter($hook, &$data) {
     $functions[$hook][] = $function;
   }
 }
-
-
-// @todo patch alpha module -
-// function alpha_alpha_page_structure_alter(&$vars) {
-//  $executed = &drupal_static(__FUNCTION__, FALSE);
-//  if ($executed) {
-//    return;
-//  }
-//  $executed = TRUE;
