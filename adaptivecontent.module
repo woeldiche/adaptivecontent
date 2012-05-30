@@ -83,7 +83,7 @@ function adaptivecontent_load_configuration($theme_key= NULL) {
 function adaptivecontent_init() {
   // @todo: is this an responsive callback ?
 //  adaptivecontent_is_ajax(FALSE);
-  adaptivecontent_is_ajax(TRUE);  
+  adaptivecontent_is_ajax(TRUE);
 }
 
 function adaptivecontent_page_alter(&$page) {
@@ -98,15 +98,62 @@ function adaptivecontent_page_alter(&$page) {
     if (!$main_content_display) {
         $page['content']['system_main'] = drupal_set_page_content();
     }
-    
-    // Render regions and return them as json arrays. @todo: load conf based on 
+
+    // Render regions and return them as json arrays. @todo: load conf based on
     // preset information in ajax callback.
     $region = adaptivecontent_find_regions($page, array('menu' => 'menu'));
-    drupal_render($page); // Get page processing functions etc running, there 
-                          // must be a better way. For annon user it will hit
-                          // the cache but.... this is a HACK.
-    drupal_json_output(render($page['header']['menu']['menu']));
-    
+
+    // Make sure that all page level hook_preprocess_page and hook_process_page
+    // are executed to ensure suff like menus and other theme variables are
+    // genenrated for use in the regions rendered later on. This code is
+    // basically taken from theme.inc.
+    $hooks = theme_get_registry(FALSE);
+    $hook = 'page';
+    $info = $hooks[$hook];
+
+    if (isset($info['base hook'])) {
+      $base_hook = $info['base hook'];
+      $base_hook_info = $hooks[$base_hook];
+      if (isset($base_hook_info['preprocess functions']) || isset($base_hook_info['process functions'])) {
+        $variables['theme_hook_suggestion'] = $hook;
+        $hook = $base_hook;
+        $info = $base_hook_info;
+      }
+    }
+
+    if (isset($info['preprocess functions']) || isset($info['process functions'])) {
+      $variables['theme_hook_suggestions'] = array();
+      foreach (array('preprocess functions', 'process functions') as $phase) {
+        if (!empty($info[$phase])) {
+          foreach ($info[$phase] as $processor_function) {
+            if (function_exists($processor_function)) {
+              // We don't want a poorly behaved process function changing $hook.
+              $hook_clone = $hook;
+              $processor_function($variables, $hook_clone);
+            }
+          }
+        }
+      }
+      // This allows the preprocess/process step to route to a more specific
+      // theme hook.
+      $suggestions = array();
+      if (!empty($variables['theme_hook_suggestions'])) {
+        $suggestions = $variables['theme_hook_suggestions'];
+      }
+      if (!empty($variables['theme_hook_suggestion'])) {
+        $suggestions[] = $variables['theme_hook_suggestion'];
+      }
+      foreach (array_reverse($suggestions) as $suggestion) {
+        if (isset($hooks[$suggestion])) {
+          $info = $hooks[$suggestion];
+          break;
+        }
+      }
+    }
+
+    // Render the regions.
+    drupal_json_output(array('menu' => drupal_render($page['header']['menu']['menu'])));
+
     drupal_exit();
   }
 
@@ -147,10 +194,10 @@ function adaptivecontent_find_regions(&$data, $regions) {
       if (isset($data[$key]['#region']) && isset($regions[$key])) {
         $array[$key] = $data[$key];
         // $array[] = render array for region.
-        
+
         // pop $regions
         unset($regions[$key]);
-        
+
         // If $regions empty break loop, no more finding need.
         if (empty($regions)) {
           break;
