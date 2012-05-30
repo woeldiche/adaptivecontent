@@ -82,8 +82,8 @@ function adaptivecontent_load_configuration($theme_key= NULL) {
 
 function adaptivecontent_init() {
   // @todo: is this an responsive callback ?
-//  adaptivecontent_is_ajax(FALSE);
-  adaptivecontent_is_ajax(TRUE);
+  adaptivecontent_is_ajax(FALSE);
+//  adaptivecontent_is_ajax(TRUE);
 }
 
 function adaptivecontent_page_alter(&$page) {
@@ -111,6 +111,15 @@ function adaptivecontent_page_alter(&$page) {
     $hook = 'page';
     $info = $hooks[$hook];
 
+    // Merge in argument defaults.
+    $variables = array();
+    $variables[$info['render element']] = $page;
+    if (!empty($info['variables'])) {
+      $variables += $info['variables'];
+    }
+    elseif (!empty($info['render element'])) {
+      $variables += array($info['render element'] => array());
+    }
     if (isset($info['base hook'])) {
       $base_hook = $info['base hook'];
       $base_hook_info = $hooks[$base_hook];
@@ -210,7 +219,6 @@ function adaptivecontent_find_regions(&$data, $regions) {
 }
 
 function adaptivecontent_theme_page_alter($hook, &$data) {
-  // Use the advanced drupal_static() pattern, since this is called very often.
   static $drupal_static_fast;
   if (!isset($drupal_static_fast)) {
     $drupal_static_fast['functions'] = &drupal_static('drupal_alter');
