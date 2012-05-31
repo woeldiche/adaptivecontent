@@ -65,10 +65,13 @@ function adaptivecontent_menu() {
   return $items;
 }
 
-function adaptivecontent_is_ajax($value = NULL) {
+function adaptivecontent_set_ajax($value = NULL) {
   $ajax = &drupal_static(__FUNCTION__);
-  if (!isset($ajax)) {
-    $ajax = isset($value) ? $value : FALSE;
+  if (isset($value)) {
+    $ajax = $value;
+  }
+  else {
+    $value = FALSE;
   }
   return $ajax;
 }
@@ -82,13 +85,16 @@ function adaptivecontent_load_configuration($theme_key= NULL) {
 
 function adaptivecontent_init() {
   // @todo: is this an responsive callback ?
-  adaptivecontent_is_ajax(FALSE);
-//  adaptivecontent_is_ajax(TRUE);
+  if (isset($_GET['responsive'])) {
+    $responsive = check_plain($_GET['responsive']);
+    if ($responsive == 'true' || intval($responsive) == 1) {
+      adaptivecontent_set_ajax(TRUE);
+    }
+  }
 }
 
 function adaptivecontent_page_alter(&$page) {
-  if (adaptivecontent_is_ajax()) {
-
+  if (adaptivecontent_set_ajax()) {
     // Run drupal_page_alter on themes, as they will always come last. In the
     // drupal_alter function, but we need to have all regions avaliable now. So
     // do the same as drupal_alter does with the themes. An better solution may
@@ -98,10 +104,6 @@ function adaptivecontent_page_alter(&$page) {
     if (!$main_content_display) {
         $page['content']['system_main'] = drupal_set_page_content();
     }
-
-    // Render regions and return them as json arrays. @todo: load conf based on
-    // preset information in ajax callback.
-    $region = adaptivecontent_find_regions($page, array('menu' => 'menu'));
 
     // Make sure that all page level hook_preprocess_page and hook_process_page
     // are executed to ensure suff like menus and other theme variables are
@@ -160,9 +162,35 @@ function adaptivecontent_page_alter(&$page) {
       }
     }
 
-    // Render the regions.
-    drupal_json_output(array('menu' => drupal_render($page['header']['menu']['menu'])));
+    // @todo: Fix form callback URI's as they will contain the ajax callback
+    // parameters, when rendered below. SOLUTION: use post's not get's.
 
+    // @todo: move parsing of parameters into own fuction.
+
+    // Check if a preset was in the ajax callback
+    $regions = array();
+    if (isset($_GET['preset'])) {
+      $preset = check_plain($_GET['preset']);
+      $conf = adaptivecontent_load_configuration();
+      $regions = isset($conf[$preset]['regions']) ? $conf[$preset]['regions'] : array();
+    }
+
+    // Check if any regions was in the ajax callback.
+    if (isset($_GET['regions']) && empty($regions)) {
+      $names = explode(',', check_plain($_GET['regions']));
+      foreach ($names as $name) {
+        $regions[$name] = $name;
+      }
+    }
+
+    // Render the regions.
+    $output = array();
+    $regions_arrays = adaptivecontent_find_regions($page, array_filter($regions));
+    foreach ($regions_arrays as $name => $array) {
+      $output[$name] = drupal_render($array);
+    }
+
+    drupal_json_output($output);
     drupal_exit();
   }
 
@@ -212,7 +240,7 @@ function adaptivecontent_find_regions(&$data, $regions) {
           break;
         }
       }
-      $array[] = adaptivecontent_find_regions($data[$key], $regions);
+      $array = array_merge(adaptivecontent_find_regions($data[$key], $regions), $array);
     }
   }
   return $array;
