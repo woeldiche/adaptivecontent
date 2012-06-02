@@ -2,18 +2,61 @@
 
 /**
  * @files
- *  
+ *
  */
 
 function adaptivecontent_install() {
   adaptivecontent_update_6001();
 }
 
+function adaptivecontent_uninstall() {
+  drupal_uninstall_schema('adaptivecontent');
+}
+
+function adaptivecontent_schema() {
+  $schema = array();
+
+  $schema['adaptivecontent_presets'] = array(
+    'description' => t('.'),
+    'fields' => array(
+      'pid' => array(
+        'description' => 'Adaptive content preset ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The name of this preset.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'query' => array(
+        'description' => 'The media query that should activate this preset.',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('pid'),
+  );
+
+  return $schema;
+}
+
 /**
- * Set module weight to ensure that the module is called last. 
+ * Set module weight to ensure that the module is called last.
  */
-function adaptivecontent_update_6001() {
+function adaptivecontent_update_7001() {
   $ret = array();
   $ret = db_query("UPDATE {system} SET weight = 1001 WHERE name = 'adaptivecontent'");
+  return $ret;
+}
+
+/**
+ * Install schema for storeing Adaptive Content presets.
+ */
+function adaptivecontent_update_7002() {
+  $ret = array();
+  drupal_install_schema('adaptivecontent');
   return $ret;
 }
