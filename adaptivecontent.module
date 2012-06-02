@@ -1,5 +1,14 @@
 <?php
 
+/**
+ * @files
+ *
+ *
+ */
+
+/**
+ * Implements hook_premission().
+ */
 function adaptivecontent_permission() {
   return array(
     'adaptivecontent administer' => array(
@@ -7,12 +16,24 @@ function adaptivecontent_permission() {
     ),
     'adaptivecontent create preset' => array(
       'title' => t('Create preset'),
-    )
+    ),
+    'adaptivecontent edit preset' => array(
+      'title' => t('Edit preset'),
+    ),
+    'adaptivecontent delete preset' => array(
+      'title' => t('Delete preset'),
+    ),
   );
 }
 
+/**
+ * Implements hook_menu().
+ */
 function adaptivecontent_menu() {
   $items = array();
+
+  // Load information about the theme available
+  $themes_info = list_themes();
 
   $items['admin/config/content/adaptivecontent'] = array(
     'title' => 'Adaptive Content',
@@ -64,17 +85,18 @@ function adaptivecontent_menu() {
     'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
   );
 
-  // @todo If omega exists, add link to import preset from omega.
-  $items['admin/config/content/adaptivecontent/presets/import'] = array(
-    'title' => 'Import Omega presets',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('adaptivecontent_preset_import'),
-    'access arguments' => array('adaptivecontent omega import'),
-    'type' => MENU_LOCAL_ACTION,
-    'file' => 'adaptivecontent.preset.inc',
-    'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
-  );
-
+  // If omega exists and is enable, add link to import presets from omega.
+  if (isset($themes_info['omega']) && $themes_info['omega']->status) {
+    $items['admin/config/content/adaptivecontent/presets/import'] = array(
+      'title' => 'Import Omega presets',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('adaptivecontent_preset_import'),
+      'access arguments' => array('adaptivecontent omega import'),
+      'type' => MENU_LOCAL_ACTION,
+      'file' => 'adaptivecontent.preset.inc',
+      'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
+    );
+  }
 
   $items['admin/config/content/adaptivecontent/settings'] = array(
     'title' => 'Settings',
@@ -87,7 +109,6 @@ function adaptivecontent_menu() {
     'type' => MENU_LOCAL_TASK,
   );
 
-  $themes_info = list_themes();
   $themes = array();
   foreach ($themes_info as $key => $theme) {
     if ($theme->status) {
@@ -107,6 +128,16 @@ function adaptivecontent_menu() {
   return $items;
 }
 
+/**
+ * Set a static variable to indicate if this is a ajax callback for rendering
+ * regions or rendering core content.
+ *
+ * @param boolean $value
+ *  If value is TRUE one regions will be generated. It defaults to FALSE, which
+ *  ensures that core content is rendered.
+ * @return boolean
+ *  Returns the current ajax state, if no parameter is passed.
+ */
 function adaptivecontent_set_ajax($value = NULL) {
   $ajax = &drupal_static(__FUNCTION__);
   if (isset($value)) {
@@ -118,6 +149,16 @@ function adaptivecontent_set_ajax($value = NULL) {
   return $ajax;
 }
 
+/**
+ * Load configuration for the currently active theme or the theme key the
+ * function was called with.
+ *
+ * @todo Match new conf structure.
+ *
+ * @global type $theme_key
+ * @param type $theme_key
+ * @return type
+ */
 function adaptivecontent_load_configuration($theme_key= NULL) {
   if (!isset($theme_key)) {
     global $theme_key;
@@ -125,6 +166,16 @@ function adaptivecontent_load_configuration($theme_key= NULL) {
   return variable_get('adaptivecontent_theme_' + $theme_key, array());
 }
 
+/**
+ * Implements hook_init().
+ *
+ * Checks if the current request is for regions or core content. If the
+ * responesive parameter is part of the request set ajax to true, so page alter
+ * knowns that this is a call for render regions.
+ *
+ * @todo: This step may not be need any more, check up on that.
+ *
+ */
 function adaptivecontent_init() {
   // @todo: is this an responsive callback ?
   if (isset($_GET['responsive'])) {
@@ -135,6 +186,13 @@ function adaptivecontent_init() {
   }
 }
 
+/**
+ * Implements hook_page_alter().
+ *
+ * This function ensures that either regions are render and returned as JSON or
+ * that the core content is returned with out the regions, which will be load be
+ * by an ajax callback later.
+ */
 function adaptivecontent_page_alter(&$page) {
   if (adaptivecontent_set_ajax()) {
     // Run drupal_page_alter on themes, as they will always come last. In the
@@ -174,6 +232,7 @@ function adaptivecontent_page_alter(&$page) {
       }
     }
 
+    // Make sure that preprocess and process functions are executed.
     if (isset($info['preprocess functions']) || isset($info['process functions'])) {
       $variables['theme_hook_suggestions'] = array();
       foreach (array('preprocess functions', 'process functions') as $phase) {
@@ -246,6 +305,15 @@ function adaptivecontent_page_alter(&$page) {
   adaptivecontent_disable_regions($page, $conf['core']['regions']);
 }
 
+/**
+ * Disables regions in an render array.
+ *
+ * @param array $data
+ *  Render array representing an page.
+ * @param array $regions
+ *  An array with the names of the regions that should be disabled with the
+ *  region name as key and the value '0' for disable and '1' for enable.
+ */
 function adaptivecontent_disable_regions(&$data, $regions) {
   // @todo: apply cache to speed up walker based on preset. Make the optional.
   $keys = array_keys($data);
@@ -264,6 +332,17 @@ function adaptivecontent_disable_regions(&$data, $regions) {
   }
 }
 
+/**
+ * Find the render array for regions in the page render array.
+ *
+ * @param array $data
+ *  Page render array.
+ * @param array $regions
+ *  The regions which should be extracted from the array, the key an value
+ *  should be the same (e.g 'menu' => 'menu').
+ * @return array
+ *  Regions found indexed by region name.
+ */
 function adaptivecontent_find_regions(&$data, $regions) {
   // @todo: apply cache to speed up walker based on preset. Make the optional.
   $array = array();
@@ -288,6 +367,16 @@ function adaptivecontent_find_regions(&$data, $regions) {
   return $array;
 }
 
+/**
+ * Calls theme alters and makes sure that the theme gets a change to alter
+ * regions befor they are rendered.
+ *
+ * @global type $theme
+ * @global type $base_theme_info
+ * @staticvar type $drupal_static_fast
+ * @param type $hook
+ * @param type $data
+ */
 function adaptivecontent_theme_page_alter($hook, &$data) {
   static $drupal_static_fast;
   if (!isset($drupal_static_fast)) {
@@ -316,4 +405,16 @@ function adaptivecontent_theme_page_alter($hook, &$data) {
     $function($data);
     $functions[$hook][] = $function;
   }
+}
+
+
+
+function _adaptivecontent_load_presets() {
+  // Use static cache.
+
+  // Load all presets.
+}
+
+function _adaptivecontent_save_preset() {
+
 }
