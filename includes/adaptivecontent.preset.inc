@@ -8,38 +8,105 @@
  * Preset administration interface to define media query based layouts.
  *
  */
-function adaptivecontent_preset_form($form_state) {
+function adaptivecontent_presets() {
+  // Define table headers.
+  $header = array(
+    array('data' => t('Name'), 'field' => 'name', 'sort' => 'asc'),
+    array('data' => t('Usage'), 'field' => 'themes'),
+    array('data' => t('Operations'), 'field' => 'Operations'),
+  );
+
+  // Load presets.
+  $presets = variable_get('adaptivecontent_presets', FALSE);
+
+  $rows = array();
+  if ($presets) {
+    foreach ($presets as $name => $preset) {
+      // Define supported oprations.
+      $operations = array(
+        'Edit' => l(t('Edit'), 'admin/config/content/adaptivecontent/presets/' . $name . '/edit'),
+        'Delete' => l(t('Delete'), 'admin/config/content/adaptivecontent/presets/' . $name . '/delete')
+      );
+
+      // Allow other modules to add more operations.
+      drupal_alter('adaptivecontent_presets_operations', $operations);
+
+      $rows[] = array(
+        'data' => array(
+          $name,
+          '',
+          implode(' ', $operations),
+        ),
+      );
+    }
+  }
+
+  // Theme the information as a table.
+  $html = theme('table',
+    array(
+      'header' => $header,
+      'rows' => $rows,
+      'sticky' => TRUE,
+      'empty' => t('No presets found...'),
+    )
+  );
+
+  // Add a pager to the table, for those sites with really may presets
+  $html .= theme('pager', array('tags' => array()));
+
+  // Give it some styling.
+//  drupal_add_css(drupal_get_path('module', 'campaignmonitor') . '/css/campaignmonitor.admin.css');
+
+  return ($html);
+}
+
+function adaptivecontent_preset_create_form($form, $form_state) {
   $form = array();
 
-  $form['presets'] = array(
-    '#title' => t('Presets'),
-    '#type' => 'fieldset',
-    '#description' => 'Configure presets for which content should be loaded adaptively. (THIS IS ONLY TESTING, SHOULD HAVE ADD ANOTHER BUTTON)'
-  );
-
-  $form['presets']['adaptivecontent_preset_normal'] = array(
-    '#title' => t('Preset 1'),
-    '#type' => 'fieldset',
-    '#tree' => TRUE,
-  );
-
-  $form['presets']['adaptivecontent_preset_normal']['title'] = array(
+  $form['adaptivecontent_name'] = array(
     '#title' => t('Preset name'),
     '#type' => 'textfield',
-    '#default_value' => t('Normal'),
+    '#description' => t('Name to recognize this preset by (e.g. narrow, normal or wide).'),
+    '#required' => TRUE,
   );
 
-  $form['presets']['adaptivecontent_preset_normal']['query'] = array(
+  $form['adaptivecontent_query'] = array(
     '#title' => t('Media query'),
     '#type' => 'textfield',
     '#description' => t('The @media query that this layout should respond to.'),
-    '#default_value' => 'all and (min-width: 740px) and (min-device-width: 740px), (max-device-width: 800px) and (min-width: 740px) and (orientation:landscape)',
     '#maxlength' => 256,
     '#size' => 128,
+    '#required' => TRUE,
   );
 
-  return system_settings_form($form);
+  $form = system_settings_form($form);
+  $form['#submit'] = array('adaptivecontent_preset_create_form_submit');
+
+  // @todo try to validate that the media query is valided
+  $form['#validate'][] = 'adaptivecontent_preset_create_form_validate';
+
+  return $form;
 }
+
+function adaptivecontent_preset_create_form_validate($form, &$form_state) {
+  $presets = variable_get('adaptivecontent_presets', array());
+  if (isset($presets[$form_state['values']['adaptivecontent_name']])) {
+    form_set_error('adaptivecontent_name', t('Preset with that name allready exists. Change the name.'));
+    return FALSE;
+  }
+}
+
+function adaptivecontent_preset_create_form_submit($form, &$form_state) {
+  $values = $form_state['values'];
+
+  $presets = variable_get('adaptivecontent_presets', array());
+  $presets[$form_state['values']['adaptivecontent_name']] = $form_state['values']['adaptivecontent_query'];
+  variable_set('adaptivecontent_presets', $presets);
+
+  drupal_set_message(t('Preset "' . $form_state['values']['adaptivecontent_name'] . '" have been created.'), 'status');
+  drupal_goto('admin/config/content/adaptivecontent/presets');
+}
+
 
 function adaptivecontent_theme_preset_form($form, $form_state, $theme) {
   $form = array(

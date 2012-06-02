@@ -2,8 +2,11 @@
 
 function adaptivecontent_permission() {
   return array(
-    'administer adaptivecontent' => array(
+    'adaptivecontent administer' => array(
       'title' => t('Administer Adaptive Content'),
+    ),
+    'adaptivecontent create preset' => array(
+      'title' => t('Create preset'),
     )
   );
 }
@@ -14,8 +17,7 @@ function adaptivecontent_menu() {
   $items['admin/config/content/adaptivecontent'] = array(
     'title' => 'Adaptive Content',
     'description' => t('Adaptive Content presets.'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('adaptivecontent_preset_form'),
+    'page callback' => 'adaptivecontent_presets',
     'access arguments' => array('administer adaptivecontent'),
     'file' => 'adaptivecontent.preset.inc',
     'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
@@ -24,32 +26,55 @@ function adaptivecontent_menu() {
 
   $items['admin/config/content/adaptivecontent/presets'] = array(
     'title' => 'Presets',
-    'description' => t('Presets.'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('adaptivecontent_preset_form'),
+    'description' => t('Adaptive Content presets.'),
+    'page callback' => 'adaptivecontent_presets',
     'access arguments' => array('administer adaptivecontent'),
     'file' => 'adaptivecontent.preset.inc',
     'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
+  $items['admin/config/content/adaptivecontent/presets/add'] = array(
+    'title' => 'Add preset',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adaptivecontent_preset_create_form'),
+    'access arguments' => array('adaptivecontent create preset'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'adaptivecontent.preset.inc',
+    'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
+  );
 
-  $themes_info = list_themes();
-  $themes = array();
-  foreach ($themes_info as $key => $theme) {
-    if ($theme->status) {
-      $items['admin/config/content/adaptivecontent/presets/' . $key] = array(
-        'title' => $theme->name,
-        'type' => MENU_LOCAL_TASK,
-        'description' => t('Presets for %theme theme.', array('%theme' => $theme->name)),
-        'page callback' => 'drupal_get_form',
-        'page arguments' => array('adaptivecontent_theme_preset_form', 5),
-        'access arguments' => array('administer adaptivecontent'),
-        'file' => 'adaptivecontent.preset.inc',
-        'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
-      );
-    }
-  }
+  $items['admin/config/content/adaptivecontent/presets/%/edit'] = array(
+    'title' => 'Edit preset',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adaptivecontent_preset_edit_form'),
+    'access arguments' => array('adaptivecontent edit preset'),
+    'type' => MENU_CALLBACK,
+    'file' => 'adaptivecontent.preset.inc',
+    'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
+  );
+
+  $items['admin/config/content/adaptivecontent/presets/%/delete'] = array(
+    'title' => 'Delete preset',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adaptivecontent_preset_create_form'),
+    'access arguments' => array('adaptivecontent delete preset'),
+    'type' => MENU_CALLBACK,
+    'file' => 'adaptivecontent.preset.inc',
+    'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
+  );
+
+  // @todo If omega exists, add link to import preset from omega.
+  $items['admin/config/content/adaptivecontent/presets/import'] = array(
+    'title' => 'Import Omega presets',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('adaptivecontent_preset_import'),
+    'access arguments' => array('adaptivecontent omega import'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'adaptivecontent.preset.inc',
+    'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
+  );
+
 
   $items['admin/config/content/adaptivecontent/settings'] = array(
     'title' => 'Settings',
@@ -61,6 +86,23 @@ function adaptivecontent_menu() {
     'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
     'type' => MENU_LOCAL_TASK,
   );
+
+  $themes_info = list_themes();
+  $themes = array();
+  foreach ($themes_info as $key => $theme) {
+    if ($theme->status) {
+      $items['admin/config/content/adaptivecontent/settings/' . $key] = array(
+        'title' => $theme->name,
+        'type' => MENU_LOCAL_TASK,
+        'description' => t('Presets for %theme theme.', array('%theme' => $theme->name)),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('adaptivecontent_theme_preset_form', 5),
+        'access arguments' => array('administer adaptivecontent'),
+        'file' => 'adaptivecontent.preset.inc',
+        'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
+      );
+    }
+  }
 
   return $items;
 }
