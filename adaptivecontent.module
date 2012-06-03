@@ -184,6 +184,7 @@ function adaptivecontent_init() {
       adaptivecontent_set_ajax(TRUE);
     }
   }
+  _adaptivecontent_load_presets();
 }
 
 /**
@@ -407,14 +408,47 @@ function adaptivecontent_theme_page_alter($hook, &$data) {
   }
 }
 
+function _adaptivecontent_load_presets($name = NULL, $reset = FALSE) {
+  $presets = &drupal_static(__FUNCTION__);
+  if (!isset($presets[$name]) || $reset) {
+    if (!isset($name)) {
+      $results = db_select('adaptivecontent_presets', 'ap')
+                  ->fields('ap', array('pid', 'name', 'human_name', 'query'))
+                  ->execute();
+    }
+    else {
+      $results = db_select('adaptivecontent_presets', 'ap')
+                  ->fields('ap', array('pid', 'name', 'human_name', 'query'))
+                  ->condition('name', $name)
+                  ->execute();
+    }
 
+    // Loop over results.
+    foreach ($results as $result) {
+      $presets[$result->name] = array(
+        'pid' => $result->pid,
+        'human_name' => $result->human_name,
+        'query' => $result->query,
+      );
+    }
+  }
 
-function _adaptivecontent_load_presets() {
-  // Use static cache.
+  if (isset($name)) {
+    if (isset($presets[$name])) {
+      return $presets[$name];
+    }
+    return FALSE;
+  }
 
-  // Load all presets.
+  return $presets;
 }
 
-function _adaptivecontent_save_preset() {
-
+function _adaptivecontent_save_preset($name, $human_name, $query) {
+  // ID is not given, so this must be a new preset.
+  db_insert('adaptivecontent_presets')
+    ->fields(array('name' => $name,
+                   'human_name' => $human_name,
+                   'query' => $query))
+    ->execute();
 }
+

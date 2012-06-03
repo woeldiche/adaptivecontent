@@ -11,13 +11,14 @@
 function adaptivecontent_presets() {
   // Define table headers.
   $header = array(
-    array('data' => t('Name'), 'field' => 'name', 'sort' => 'asc'),
+    array('data' => t('Name'), 'field' => 'human_name', 'sort' => 'asc'),
+    array('data' => t('Machine name'), 'field' => 'name'),
     array('data' => t('Usage'), 'field' => 'themes'),
     array('data' => t('Operations'), 'field' => 'Operations'),
   );
 
   // Load presets.
-  $presets = variable_get('adaptivecontent_presets', FALSE);
+  $presets = _adaptivecontent_load_presets();
 
   $rows = array();
   if ($presets) {
@@ -33,8 +34,9 @@ function adaptivecontent_presets() {
 
       $rows[] = array(
         'data' => array(
+          $preset['human_name'],
           $name,
-          '',
+          '', // @todo: Load preset usage... just for fun.
           implode(' ', $operations),
         ),
       );
@@ -63,14 +65,24 @@ function adaptivecontent_presets() {
 function adaptivecontent_preset_create_form($form, $form_state) {
   $form = array();
 
-  $form['adaptivecontent_name'] = array(
-    '#title' => t('Preset name'),
+  $form['human_name'] = array(
+    '#title' => t('Name'),
     '#type' => 'textfield',
     '#description' => t('Name to recognize this preset by (e.g. narrow, normal or wide).'),
     '#required' => TRUE,
   );
 
-  $form['adaptivecontent_query'] = array(
+  $form['name'] = array(
+    '#type' => 'machine_name',
+    '#maxlength' => 32,
+    '#machine_name' => array(
+      'exists' => '_adaptivecontent_load_presets',
+      'source' => array('human_name'),
+    ),
+    '#description' => t('A unique machine-readable name for this View. It must only contain lowercase letters, numbers, and underscores.'),
+  );
+
+  $form['query'] = array(
     '#title' => t('Media query'),
     '#type' => 'textfield',
     '#description' => t('The @media query that this layout should respond to.'),
@@ -89,21 +101,16 @@ function adaptivecontent_preset_create_form($form, $form_state) {
 }
 
 function adaptivecontent_preset_create_form_validate($form, &$form_state) {
-  $presets = variable_get('adaptivecontent_presets', array());
-  if (isset($presets[$form_state['values']['adaptivecontent_name']])) {
-    form_set_error('adaptivecontent_name', t('Preset with that name allready exists. Change the name.'));
-    return FALSE;
-  }
+  /**
+   * @todo: Make some validation of the preset.
+   */
 }
 
 function adaptivecontent_preset_create_form_submit($form, &$form_state) {
-  $values = $form_state['values'];
-
-  $presets = variable_get('adaptivecontent_presets', array());
-  $presets[$form_state['values']['adaptivecontent_name']] = $form_state['values']['adaptivecontent_query'];
-  variable_set('adaptivecontent_presets', $presets);
-
-  drupal_set_message(t('Preset "' . $form_state['values']['adaptivecontent_name'] . '" have been created.'), 'status');
+  _adaptivecontent_save_preset($form_state['values']['name'],
+                               $form_state['values']['human_name'],
+                               $form_state['values']['query']);
+  drupal_set_message(t('Preset "' . $form_state['values']['name'] . '" have been created.'), 'status');
   drupal_goto('admin/config/content/adaptivecontent/presets');
 }
 

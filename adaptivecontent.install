@@ -6,7 +6,7 @@
  */
 
 function adaptivecontent_install() {
-  adaptivecontent_update_6001();
+  adaptivecontent_update_7001();
 }
 
 function adaptivecontent_uninstall() {
@@ -27,6 +27,12 @@ function adaptivecontent_schema() {
       ),
       'name' => array(
         'description' => 'The name of this preset.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'human_name' => array(
+        'description' => 'The human readable name of this preset.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
