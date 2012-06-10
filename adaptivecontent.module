@@ -163,7 +163,7 @@ function adaptivecontent_load_configuration($theme_key= NULL) {
   if (!isset($theme_key)) {
     global $theme_key;
   }
-  return variable_get('adaptivecontent_theme_' + $theme_key, array());
+  return variable_get('adaptivecontent_theme_' . $theme_key, array());
 }
 
 /**
@@ -298,12 +298,13 @@ function adaptivecontent_page_alter(&$page) {
 
   // Load configuration.
   $conf = adaptivecontent_load_configuration();
-
-  // Load regions from theme (omega do some suff that requires us to work on
-  // copy). This creates some problem with the normal, where the theme have to
-  // ensure that it do not call these them self... see patch for alpha.
-  adaptivecontent_theme_page_alter('page_alter', $page);
-  adaptivecontent_disable_regions($page, $conf['core']['regions']);
+  if (!empty($conf)) {
+    // Load regions from theme (omega do some suff that requires us to work on
+    // copy). This creates some problem with the normal, where the theme have to
+    // ensure that it do not call these them self... see patch for alpha.
+    adaptivecontent_theme_page_alter('page_alter', $page);
+    adaptivecontent_disable_regions($page, $conf['core']['regions']); 
+  }
 }
 
 /**
