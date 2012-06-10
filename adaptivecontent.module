@@ -464,3 +464,8 @@ function _adaptivecontent_save_preset($name, $human_name, $query, $pid = NULL) {
   }
 }
 
+function _adaptivecontent_delete_preset($pid) {
+  db_delete('adaptivecontent_presets')
+    ->condition('pid', $pid, '=')
+    ->execute();
+}
