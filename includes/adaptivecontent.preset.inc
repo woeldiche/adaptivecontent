@@ -53,15 +53,14 @@ function adaptivecontent_presets() {
     )
   );
 
-  // Add a pager to the table, for those sites with really may presets
-  $html .= theme('pager', array('tags' => array()));
-
-  // Give it some styling.
-//  drupal_add_css(drupal_get_path('module', 'campaignmonitor') . '/css/campaignmonitor.admin.css');
-
-  return ($html);
+  // Return the HTML table.
+  return $html;
 }
 
+/**
+ * Preset edit form.
+ *
+ */
 function adaptivecontent_preset_edit_form($form, $form_state, $name = NULL) {
   $form = array();
 
@@ -115,12 +114,20 @@ function adaptivecontent_preset_edit_form($form, $form_state, $name = NULL) {
   return $form;
 }
 
+/**
+ * Preset edit form validate handler.
+ *
+ */
 function adaptivecontent_preset_create_form_validate($form, &$form_state) {
   /**
    * @todo: Make some validation of the preset.
    */
 }
 
+/**
+ * Preset edit form submit handler.
+ *
+ */
 function adaptivecontent_preset_create_form_submit($form, &$form_state) {
   if (isset($form_state['values']['pid'])) {
     _adaptivecontent_save_preset($form_state['values']['name'],
@@ -138,6 +145,10 @@ function adaptivecontent_preset_create_form_submit($form, &$form_state) {
   drupal_goto('admin/config/content/adaptivecontent/presets');
 }
 
+/**
+ * Preset delete form.
+ *
+ */
 function adaptivecontent_preset_delete_form($form, $form_state, $name) {
   // Load preset, if name is given.
   $default = array();
@@ -162,59 +173,15 @@ function adaptivecontent_preset_delete_form($form, $form_state, $name) {
   drupal_goto('admin/config/content/adaptivecontent/presets');
 }
 
+/**
+ * Preset delete form submit handler.
+ *
+ */
 function adaptivecontent_preset_delete_form_submit($form, &$form_state) {
-	if ($form_state['values']['confirm']) { 
-		_adaptivecontent_delete_preset($form_state['values']['pid']);			 
+	if ($form_state['values']['confirm']) {
+		_adaptivecontent_delete_preset($form_state['values']['pid']);
 		drupal_set_message(t('Preset has been deleted successfully.'));
   }
- 
+
 	drupal_goto("admin/config/content/adaptivecontent/presets");
-}
-
-function adaptivecontent_theme_preset_form($form, $form_state, $theme) {
-  $form = array(
-    '#tree' => TRUE,
-  );
-
-  // Find all regions for the selected theme.
-  $themes_info = list_themes();
-  $theme = $themes_info[$theme];
-  $regions = $theme->info['regions'];
-
-  // Load values.
-  $default = variable_get('adaptivecontent_theme_' + $theme->name, array());
-
-  $form['adaptivecontent_theme_' + $theme->name]['core'] = array(
-    '#title' => t('Core content'),
-    '#type' => 'fieldset',
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-  );
-
-  $form['adaptivecontent_theme_' + $theme->name]['core']['regions'] = array(
-    '#title' => t('Regions'),
-    '#type' => 'checkboxes',
-    '#options' => $regions,
-    '#default_value' => isset($default['core']['regions']) ? $default['core']['regions'] : array(),
-  );
-
-  /**
-   * @todo: Load all presets from configuration. For now only regions is
-   * adaptively loaded
-   */
-  $form['adaptivecontent_theme_' + $theme->name]['preset_1'] = array(
-    '#title' => t('Preset - Normal'),
-    '#type' => 'fieldset',
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-  );
-
-  $form['adaptivecontent_theme_' + $theme->name]['preset_1']['regions'] = array(
-    '#title' => t('Regions'),
-    '#type' => 'checkboxes',
-    '#options' => $regions,
-    '#default_value' => isset($default['preset_1']['regions']) ? $default['preset_1']['regions'] : array(),
-  );
-
-  return system_settings_form($form);
 }

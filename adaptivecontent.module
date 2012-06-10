@@ -3,7 +3,6 @@
 /**
  * @files
  *
- *
  */
 
 /**
@@ -101,8 +100,9 @@ function adaptivecontent_menu() {
   $items['admin/config/content/adaptivecontent/settings'] = array(
     'title' => 'Settings',
     'description' => t('Adaptive Content settings.'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('adaptivecontent_setting_form'),
+//    'page callback' => 'drupal_get_form',
+    'page callback' => 'adaptivecontent_setting_form',
+//    'page arguments' => array('adaptivecontent_setting_form'),
     'access arguments' => array('administer adaptivecontent'),
     'file' => 'adaptivecontent.setting.inc',
     'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
@@ -119,7 +119,7 @@ function adaptivecontent_menu() {
         'page callback' => 'drupal_get_form',
         'page arguments' => array('adaptivecontent_theme_preset_form', 5),
         'access arguments' => array('administer adaptivecontent'),
-        'file' => 'adaptivecontent.preset.inc',
+        'file' => 'adaptivecontent.themes.inc',
         'file path' => drupal_get_path('module', 'adaptivecontent') . '/includes',
       );
     }
@@ -408,6 +408,17 @@ function adaptivecontent_theme_page_alter($hook, &$data) {
   }
 }
 
+/**
+ * Loads an preset based on preset name if given. If no name is given all
+ * presets are loaded.
+ *
+ * This function uses an static cache.
+ *
+ * @param string $name The name of the preset to load.
+ * @param boolean $reset Reset the static cache, defaults to FALSE.
+ * @return mixed Returns an array with preset(s) or FALSE if the preset was not
+ * found.
+ */
 function _adaptivecontent_load_presets($name = NULL, $reset = FALSE) {
   $presets = &drupal_static(__FUNCTION__);
   if (!isset($presets[$name]) || $reset) {
@@ -441,9 +452,21 @@ function _adaptivecontent_load_presets($name = NULL, $reset = FALSE) {
     return FALSE;
   }
 
-  return $presets;
+  if (isset($presets) && !empty($presets)) {
+    return $presets;
+  }
+
+  return FALSE;
 }
 
+/**
+ *
+ *
+ * @param type $name
+ * @param type $human_name
+ * @param type $query
+ * @param type $pid
+ */
 function _adaptivecontent_save_preset($name, $human_name, $query, $pid = NULL) {
   if (isset($pid)) {
     db_update('adaptivecontent_presets')
