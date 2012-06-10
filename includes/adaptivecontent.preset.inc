@@ -62,30 +62,45 @@ function adaptivecontent_presets() {
   return ($html);
 }
 
-function adaptivecontent_preset_create_form($form, $form_state) {
+function adaptivecontent_preset_edit_form($form, $form_state, $name = NULL) {
   $form = array();
+
+  // Load defaults if name is given.
+  $default = array();
+  if (isset($name)) {
+    $default = _adaptivecontent_load_presets($name);
+
+    $form['pid'] = array(
+      '#type' => 'hidden',
+      '#value' => $default['pid'],
+    );
+  }
 
   $form['human_name'] = array(
     '#title' => t('Name'),
     '#type' => 'textfield',
     '#description' => t('Name to recognize this preset by (e.g. narrow, normal or wide).'),
+    '#default_value' => isset($default['human_name']) ? $default['human_name'] : '',
     '#required' => TRUE,
   );
 
   $form['name'] = array(
     '#type' => 'machine_name',
+    '#description' => t('A unique machine-readable name for this View. It must only contain lowercase letters, numbers, and underscores.'),
+    '#disabled' => isset($default['name']) ? TRUE : FALSE,
+    '#default_value' => isset($default['name']) ? $default['name'] : '',
     '#maxlength' => 32,
     '#machine_name' => array(
       'exists' => '_adaptivecontent_load_presets',
       'source' => array('human_name'),
     ),
-    '#description' => t('A unique machine-readable name for this View. It must only contain lowercase letters, numbers, and underscores.'),
   );
 
   $form['query'] = array(
     '#title' => t('Media query'),
     '#type' => 'textfield',
     '#description' => t('The @media query that this layout should respond to.'),
+    '#default_value' => isset($default['query']) ? $default['query'] : '',
     '#maxlength' => 256,
     '#size' => 128,
     '#required' => TRUE,
@@ -107,13 +122,24 @@ function adaptivecontent_preset_create_form_validate($form, &$form_state) {
 }
 
 function adaptivecontent_preset_create_form_submit($form, &$form_state) {
-  _adaptivecontent_save_preset($form_state['values']['name'],
-                               $form_state['values']['human_name'],
-                               $form_state['values']['query']);
-  drupal_set_message(t('Preset "' . $form_state['values']['name'] . '" have been created.'), 'status');
+  if (isset($form_state['values']['name'])) {
+    _adaptivecontent_save_preset($form_state['values']['name'],
+                                $form_state['values']['human_name'],
+                                $form_state['values']['query']);
+    drupal_set_message(t('Preset "' . $form_state['values']['name'] . '" have been created.'), 'status');
+  }
+  else {
+    _adaptivecontent_save_preset($form_state['values']['name'],
+                                $form_state['values']['human_name'],
+                                $form_state['values']['query']);
+    drupal_set_message(t('Preset "' . $form_state['values']['name'] . '" have been created.'), 'status');
+  }
   drupal_goto('admin/config/content/adaptivecontent/presets');
 }
 
+function adaptivecontent_preset_delete_form($form, $form_state, $name) {
+
+}
 
 function adaptivecontent_theme_preset_form($form, $form_state, $theme) {
   $form = array(

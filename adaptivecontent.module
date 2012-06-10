@@ -58,7 +58,7 @@ function adaptivecontent_menu() {
   $items['admin/config/content/adaptivecontent/presets/add'] = array(
     'title' => 'Add preset',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('adaptivecontent_preset_create_form'),
+    'page arguments' => array('adaptivecontent_preset_edit_form'),
     'access arguments' => array('adaptivecontent create preset'),
     'type' => MENU_LOCAL_ACTION,
     'file' => 'adaptivecontent.preset.inc',
@@ -68,7 +68,7 @@ function adaptivecontent_menu() {
   $items['admin/config/content/adaptivecontent/presets/%/edit'] = array(
     'title' => 'Edit preset',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('adaptivecontent_preset_edit_form'),
+    'page arguments' => array('adaptivecontent_preset_edit_form', 5),
     'access arguments' => array('adaptivecontent edit preset'),
     'type' => MENU_CALLBACK,
     'file' => 'adaptivecontent.preset.inc',
@@ -78,7 +78,7 @@ function adaptivecontent_menu() {
   $items['admin/config/content/adaptivecontent/presets/%/delete'] = array(
     'title' => 'Delete preset',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('adaptivecontent_preset_create_form'),
+    'page arguments' => array('adaptivecontent_preset_delete_form', 5),
     'access arguments' => array('adaptivecontent delete preset'),
     'type' => MENU_CALLBACK,
     'file' => 'adaptivecontent.preset.inc',
@@ -427,6 +427,7 @@ function _adaptivecontent_load_presets($name = NULL, $reset = FALSE) {
     foreach ($results as $result) {
       $presets[$result->name] = array(
         'pid' => $result->pid,
+        'name' => $result->name,
         'human_name' => $result->human_name,
         'query' => $result->query,
       );
@@ -443,12 +444,23 @@ function _adaptivecontent_load_presets($name = NULL, $reset = FALSE) {
   return $presets;
 }
 
-function _adaptivecontent_save_preset($name, $human_name, $query) {
-  // ID is not given, so this must be a new preset.
-  db_insert('adaptivecontent_presets')
-    ->fields(array('name' => $name,
-                   'human_name' => $human_name,
-                   'query' => $query))
-    ->execute();
+function _adaptivecontent_save_preset($name, $human_name, $query, $pid = NULL) {
+  if (isset($pid)) {
+    db_update('adaptivecontent_presets')
+      ->fields(array(
+        'human_name' => $human_name,
+        'query' => $query,
+      ))
+      ->condition('pid', $pid, '=')
+      ->execute();
+  }
+  else {
+    // ID is not given, so this must be a new preset.
+    db_insert('adaptivecontent_presets')
+      ->fields(array('name' => $name,
+                    'human_name' => $human_name,
+                    'query' => $query))
+      ->execute();
+  }
 }
 
