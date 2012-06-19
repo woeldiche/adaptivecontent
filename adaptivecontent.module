@@ -178,14 +178,19 @@ function adaptivecontent_load_configuration($theme_key= NULL) {
  */
 function adaptivecontent_init() {
   // @todo: is this an responsive callback ?
-  if (isset($_GET['responsive'])) {
-    $responsive = check_plain($_GET['responsive']);
+  if (isset($_GET['responsive']) || isset($_POST['responsive'])) {
+    $responsive = check_plain(isset($_GET['responsive']) ? $_GET['responsive'] : $_POST['responsive']);
     if ($responsive == 'true' || intval($responsive) == 1) {
       adaptivecontent_set_ajax(TRUE);
     }
   }
   _adaptivecontent_load_presets();
 }
+
+function adaptivecontent_ajax_parameters() {
+  
+}
+
 
 /**
  * Implements hook_page_alter().
